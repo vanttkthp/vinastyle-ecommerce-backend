@@ -24,12 +24,11 @@ model User {
   avatar      String?
   gender      Gender?
   addresses   Address[]
-  orders      Order[]
-  cart        Cart[]
   roleId      Int      @default(3)
   role        Role     @relation(fields: [roleId], references: [roleId])
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+  @@map("users")
 }
 
 enum Gender {
@@ -46,6 +45,7 @@ model Role {
   users       User[]
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+  @@map("roles")  
 }
 
 enum RoleName {
@@ -69,117 +69,5 @@ model Address {
   user          User   @relation(fields: [userId], references: [userId])
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-}
-
-// 4. Product
-model Product {
-  productId          String          @id @default(cuid())
-  productName        String
-  productDescription String
-  productPrice       Float
-  productStock       Int
-  productImage       String
-  productCategoryId  String
-  productCategory    ProductCategory @relation(fields: [productCategoryId], references: [productCategoryId])
-  orderItems         OrderItem[]
-  cartItems          CartItem[]
-  reviews            Review[]
-  createdAt          DateTime        @default(now())
-  updatedAt          DateTime        @updatedAt
-}
-
-// 5. Product Category
-model ProductCategory {
-  productCategoryId          String    @id @default(cuid())
-  productCategoryName        String
-  productCategoryDescription String?
-  products                   Product[]
-  createdAt                  DateTime  @default(now())
-  updatedAt                  DateTime  @updatedAt
-}
-
-// 6. Order
-model Order {
-  orderId     String      @id @default(cuid())
-  orderDate   DateTime
-  orderStatus String
-  orderTotal  Float
-  userId      String
-  user        User        @relation(fields: [userId], references: [userId])
-  orderItems  OrderItem[]
-  payment     Payment[]
-}
-
-// 7. Order Item
-model OrderItem {
-  orderItemId String   @id @default(cuid())
-  orderId     String
-  order       Order    @relation(fields: [orderId], references: [orderId])
-  productId   String
-  product     Product  @relation(fields: [productId], references: [productId])
-  quantity    Int
-  price       Float
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-}
-
-// 8. Payment
-model Payment {
-  paymentId     String   @id @default(cuid())
-  paymentDate   DateTime
-  paymentAmount Float
-  paymentStatus String
-  orderId       String
-  order         Order    @relation(fields: [orderId], references: [orderId])
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-}
-
-// 9. Cart
-model Cart {
-  cartId    String     @id @default(cuid())
-  userId    String
-  user      User       @relation(fields: [userId], references: [userId])
-  cartItems CartItem[]
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
-}
-
-// 10. Cart Item
-model CartItem {
-  cartItemId String   @id @default(cuid())
-  cartId     String
-  cart       Cart     @relation(fields: [cartId], references: [cartId])
-  productId  String
-  product    Product  @relation(fields: [productId], references: [productId])
-  quantity   Int
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-}
-
-// 11. Review
-model Review {
-  reviewId String @id @default(cuid())
-  reviewRating Int
-  reviewComment String
-  productId String
-  product Product @relation(fields: [productId], references: [productId])
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-// 12. Discount
-model Discount {
-  discountId String @id @default(cuid())
-  discountCode String
-  discountType String
-  discountValue Float
-  discountStartDate DateTime
-  discountEndDate DateTime
-  discountStatus String
-  discountDescription String
-  discountQuantity Int
-  discountCondition String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  @@map("addresses")
 }
