@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  vinastyle-ecommerce-database:
+    image: postgres:latest
+    container_name: vinastyle-ecommerce-database
+    ports:
+      - '5432:5432'
+    environment:
+      - POSTGRES_DB=vinastyle-ecommerce-db
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=V@nDC1684
+    networks:
+      - vinastyle-ecommerce-network
+
+networks:
+    vinastyle-ecommerce-network:
+      
+      
