@@ -23,9 +23,10 @@ model User {
   phoneNumber String?
   avatar      String?
   gender      Gender?
-  addresses   Address[]
+  // addresses   Address[]
   roleId      Int      @default(3)
-  role        Role     @relation(fields: [roleId], references: [roleId])
+  // role        Role     @relation(fields: [roleId], references: [roleId])
+  currentRefreshToken String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   @@map("users")
@@ -37,37 +38,49 @@ enum Gender {
   OTHER
 }
 
-// 2. Role
-model Role {
-  roleId      Int   @id @default(autoincrement())
-  roleName    RoleName @unique
-  description String?
-  users       User[]
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  @@map("roles")  
-}
+// 2. Rol
+// model Role {
+//   roleId      Int   @id @default(autoincrement())
+//   roleName    RoleName @unique
+//   description String?
+//   users       User[]
+//   createdAt   DateTime @default(now())
+//   updatedAt   DateTime @updatedAt
+//   @@map("roles")  
+// }
 
-enum RoleName {
-  ADMIN
-  STAFF
-  CUSTOMER
-}
+// enum RoleName {
+//   ADMIN
+//   STAFF
+//   CUSTOMER
+// }
 
 // 3. Address
-model Address {
-  addressId     String @id @default(cuid())
-  addressDetail String
-  country       String
-  city          String
-  district      String
-  ward          String
-  street        String
-  houseNumber   String
-  postalCode    String
-  userId        String
-  user          User   @relation(fields: [userId], references: [userId])
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  @@map("addresses")
+
+// model Address {
+//   addressId     String @id @default(cuid())
+  // addressDetail String
+  // country       String
+  // city          String
+  // district      String
+  // ward          String
+  // street        String
+  // houseNumber   String
+  // postalCode    String
+  // userId        String
+  // user          User   @relation(fields: [userId], references: [userId])
+  // createdAt DateTime @default(now())
+  // updatedAt DateTime @updatedAt
+  // @@map("addresses")
+  // }
+
+
+model Product {
+  productId String @id @default(cuid())
+  productName String
+  productDescription String
+  productPrice Int
+  productStock Int
+  productImage String
+  productCategory String
 }

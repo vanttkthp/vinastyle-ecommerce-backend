@@ -1,26 +1,32 @@
-import { Controller, Post, Body } from "@nestjs/common";
-import { AuthService } from "./auth.service";
-import { AuthDto } from "./dto/auth.dto";
+import { Controller, Post, Body, Res, UseGuards, Req } from '@nestjs/common';
+import { AuthService } from './auth.service';
+import { SignUpDto } from './dto';
+import { LocalAuthGuard, JwtAccessTokenGuard } from './guards';
+import { RequestWithUser } from 'src/types/request.type';
 
-@Controller('auth')
+@Controller({
+  path: 'api/v1/auth',
+  version: '1',
+})
 export class AuthController {
-    constructor(private readonly authService: AuthService) {}
+  constructor(private readonly authService: AuthService) {}
 
+  @Post('sign-up')
+  async signUp(@Body() signUpDto: SignUpDto) {
+    return await this.authService.signUp(signUpDto);
+  }
 
-    @Post('sign-up')
-    signUp(@Body() dto: AuthDto) {
-        console.log(dto);
-        return this.authService.signUp(dto);
-    }
+  @UseGuards(LocalAuthGuard)
+  @Post('sign-in')
+  async signIn(@Req() request: RequestWithUser) {
+    const { user } = request;
+    return await this.authService.signIn(user.userId);
+  }
 
-    @Post('sign-in')
-    signIn(@Body() dto: AuthDto) {
-        return this.authService.signIn(dto);
-    }
-
-    @Post('sign-out')
-    signOut() {
-        return this.authService.signOut();
-    }
-
+  @UseGuards(JwtAccessTokenGuard)
+  @Post('sign-out')
+  signOut(@Req() request: RequestWithUser) {
+    const { user } = request;
+    return this.authService.signOut(user.userId);
+  }
 }
