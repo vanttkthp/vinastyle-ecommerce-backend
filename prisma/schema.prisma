@@ -25,7 +25,7 @@ model User {
   gender      Gender?
   // addresses   Address[]
   roleId      Int      @default(3)
-  // role        Role     @relation(fields: [roleId], references: [roleId])
+  role        Role     @relation(fields: [roleId], references: [roleId])
   currentRefreshToken String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -38,22 +38,22 @@ enum Gender {
   OTHER
 }
 
-// 2. Rol
-// model Role {
-//   roleId      Int   @id @default(autoincrement())
-//   roleName    RoleName @unique
-//   description String?
-//   users       User[]
-//   createdAt   DateTime @default(now())
-//   updatedAt   DateTime @updatedAt
-//   @@map("roles")  
-// }
+// 2. Role
+model Role {
+  roleId      Int   @id @default(autoincrement())
+  roleName    RoleName @unique
+  description String?
+  users       User[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  @@map("roles")  
+}
 
-// enum RoleName {
-//   ADMIN
-//   STAFF
-//   CUSTOMER
-// }
+enum RoleName {
+  ADMIN
+  STAFF
+  CUSTOMER
+}
 
 // 3. Address
 
@@ -74,13 +74,3 @@ enum Gender {
   // @@map("addresses")
   // }
 
-
-model Product {
-  productId String @id @default(cuid())
-  productName String
-  productDescription String
-  productPrice Int
-  productStock Int
-  productImage String
-  productCategory String
-}

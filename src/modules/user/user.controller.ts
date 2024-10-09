@@ -2,7 +2,10 @@ import { Controller, Get, Req, Res, SerializeOptions, UseGuards } from '@nestjs/
 import { UserService } from './user.service';
 import { AuthGuard } from '@nestjs/passport';
 import { Response } from 'express';
-import { JwtAccessTokenGuard } from 'src/auth/guards';
+import { JwtAccessTokenGuard } from '../auth/guards';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from 'src/decorators/roles.decorator';
+import { USER_ROLE } from '../../constants/user.constant';
 
 @Controller(
     {
@@ -13,7 +16,9 @@ import { JwtAccessTokenGuard } from 'src/auth/guards';
 export class UserController {
     constructor(private readonly userService: UserService) {}
 
-	@UseGuards(JwtAccessTokenGuard) // Thêm vào đây
+    @Roles(USER_ROLE.ADMIN)
+	@UseGuards(RolesGuard)
+	@UseGuards(JwtAccessTokenGuard)
     @Get('/profile')
     getUser(@Req() req) {
         return req.user;

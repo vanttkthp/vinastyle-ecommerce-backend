@@ -2,14 +2,14 @@ import {
   Injectable,
   BadRequestException,
   ConflictException,
-  Response,
 } from '@nestjs/common';
-import { PrismaService } from 'src/prisma/prisma.service';
+import { PrismaService } from '../prisma/prisma.service';
 import { SignUpDto } from './dto';
 import * as bcrypt from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { TokenPayload } from './interfaces/token-payload.interface';
+import { Response } from 'express';
 
 @Injectable({})
 export class AuthService {
@@ -50,7 +50,10 @@ export class AuthService {
         accessToken,
       };
     } catch (error) {
-      throw error;
+      const message = error.message || 'Sign up failed!! Try again later.';
+      return {
+        message,
+      };
     }
   }
 
