@@ -24,10 +24,13 @@ model User {
   avatar      String?
   gender      Gender?
   addresses   Address[]
-  roleId      Int      @default(3)
-  role        Role     @relation(fields: [roleId], references: [roleId])
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  wishlist    Wishlist?
+  orders      Order[]
+  roleName    RoleName  @default(CUSTOMER)
+  role        Role      @relation(fields: [roleName], references: [roleName])
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
   @@map("users")
 }
 
@@ -39,13 +42,16 @@ enum Gender {
 
 // 2. Role
 model Role {
-  roleId      Int   @id @default(autoincrement())
+  roleId      Int      @id @default(autoincrement())
   roleName    RoleName @unique
   description String?
   users       User[]
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-  @@map("roles")  
+  createdBy   String?
+  updatedBy   String?
+
+  @@map("roles")
 }
 
 enum RoleName {
@@ -55,19 +61,308 @@ enum RoleName {
 }
 
 // 3. Address
+
 model Address {
-  addressId     String @id @default(cuid())
+  addressId     String     @id @default(cuid())
   addressDetail String
-  country       String
+  country       String     @default("Viet Nam")
   city          String
   district      String
   ward          String
-  street        String
-  houseNumber   String
-  postalCode    String
+  street        String?
+  houseNumber   String?
+  postalCode    String?
   userId        String
-  user          User   @relation(fields: [userId], references: [userId])
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  user          User       @relation(fields: [userId], references: [userId])
+  shipments     Shipment[]
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+
   @@map("addresses")
+}
+
+enum City {
+  HANOI
+  HAIPHONG
+  THANHHOA
+  NAMDINH
+}
+
+// 4. Product
+model Product {
+  productId       String           @id @default(cuid())
+  name            String
+  description     String
+  price           Float
+  categoryId      String
+  category        Category         @relation(fields: [categoryId], references: [categoryId])
+  subCategoryId   String
+  subCategory     SubCategory      @relation(fields: [subCategoryId], references: [subCategoryId])
+  brandId         String
+  brand           Brand            @relation(fields: [brandId], references: [brandId])
+  productVariants ProductVariant[]
+  images          Image[]
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  createdBy       String?
+  updatedBy       String?
+
+  @@map("products")
+}
+
+// 5. Category
+model Category {
+  categoryId    String        @id @default(cuid())
+  name          String
+  description   String?
+  products      Product[]
+  subCategories SubCategory[]
+  forMale       Boolean       @default(true)
+  forFeMale     Boolean       @default(true)
+  unisex        Boolean       @default(true)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  createdBy     String?
+  updatedBy     String?
+
+  @@map("categories")
+}
+
+model SubCategory {
+  subCategoryId String    @id @default(cuid())
+  name          String
+  description   String?
+  categoryId    String
+  category      Category  @relation(fields: [categoryId], references: [categoryId])
+  products      Product[]
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  createdBy     String?
+  updatedBy     String?
+
+  @@map("sub_categories")
+}
+
+// 6. Brand
+model Brand {
+  brandId     String    @id @default(cuid())
+  name        String
+  description String?
+  logo        String?
+  products    Product[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  createdBy   String?
+  updatedBy   String?
+
+  @@map("brands")
+}
+
+// 7. Product Variant
+model ProductVariant {
+  productVariantId String      @id @default(cuid())
+  productId        String
+  product          Product     @relation(fields: [productId], references: [productId])
+  sizeId           String
+  size             Size        @relation(fields: [sizeId], references: [sizeId])
+  stock            Int
+  SKU              String
+  soldQuantity     Int         @default(0)
+  orderItem        OrderItem[]
+  wishlists        Wishlist[]
+  colorId          String
+  color            Color       @relation(fields: [colorId], references: [colorId])
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+  createdBy        String?
+  updatedBy        String?
+
+  @@map("product_variants")
+}
+
+model Size {
+  sizeId          String           @id @default(cuid())
+  sizeType        SizeType
+  productVariants ProductVariant[]
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  createdBy       String?
+  updatedBy       String?
+
+  @@map("sizes")
+}
+
+// 7. Color
+model Color {
+  colorId         String           @id @default(cuid())
+  productVariants ProductVariant[]
+  name            String[]
+  hexCode         String[]
+  images          Image[]
+  description     String?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  createdBy       String?
+  updatedBy       String?
+
+  @@map("colors")
+}
+
+enum SizeType {
+  XS
+  S
+  M
+  L
+  XL
+  XXL
+  XXXL
+}
+
+// 9. Wishlist
+model Wishlist {
+  wishlistId       String         @id @default(cuid())
+  user             User           @relation(fields: [userId], references: [userId])
+  userId           String         @unique
+  productVariantId String
+  productVariant   ProductVariant @relation(fields: [productVariantId], references: [productVariantId])
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  @@map("wishlists")
+}
+
+// 10. Order
+model Order {
+  orderId        String      @id @default(cuid())
+  userId         String?
+  user           User?       @relation(fields: [userId], references: [userId])
+  orderItems     OrderItem[]
+  totalPrice     Float
+  orderDate      DateTime    @default(now())
+  status         OrderStatus @default(IN_CART)
+  totalAmount    Float
+  discountAmount Float       @default(0)
+  shipmentId     String?
+  shipment       Shipment?   @relation(fields: [shipmentId], references: [shipmentId])
+  paymentId      String?
+  payment        Payment?    @relation(fields: [paymentId], references: [paymentId])
+  note           String?
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+
+  @@map("orders")
+}
+
+enum OrderStatus {
+  IN_CART
+  PENDING
+  SHIPPING
+  DELIVERED
+  CANCELLED
+}
+
+// 11. Order Item
+model OrderItem {
+  orderItemId      String         @id @default(cuid())
+  orderId          String
+  order            Order          @relation(fields: [orderId], references: [orderId])
+  quantity         Int
+  total            Float
+  productVariantId String
+  productVariant   ProductVariant @relation(fields: [productVariantId], references: [productVariantId])
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  @@map("order_items")
+}
+
+// 12. Shipment
+model Shipment {
+  shipmentId            String         @id @default(cuid())
+  shipmentMethod        ShipmentMethod @default(SHIPMENT)
+  orders                Order[]
+  shipmentDate          DateTime       @default(now())
+  status                ShipmentStatus @default(PENDING)
+  estimatedDeliveryDate DateTime? // Ngày giao hàng dự kiến (có thể null nếu chưa xác định)
+  estimatedCost         Float? // Chi phí dự kiến cho giao hàng
+  addressId             String
+  address               Address        @relation(fields: [addressId], references: [addressId])
+  createdAt             DateTime       @default(now())
+  updatedAt             DateTime       @updatedAt
+
+  @@map("shipments")
+}
+
+enum ShipmentMethod {
+  SHIPMENT
+  PICKUP
+  EXPRESS
+  COURIER
+}
+
+enum ShipmentStatus {
+  PENDING
+  SHIPPING
+  DELIVERED
+  CANCELLED
+}
+
+// 13. Payment
+model Payment {
+  paymentId     String        @id @default(cuid())
+  paymentDate   DateTime      @default(now())
+  paymentMethod PaymentMethod @default(COD)
+  orders        Order[]
+  amount        Float
+  status        PaymentStatus @default(PENDING)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  @@map("payments")
+}
+
+enum PaymentMethod {
+  MOMO
+  ZALO
+  COD
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+  CANCELLED
+}
+
+model Image {
+  imageId          String   @id @default(cuid())
+  keypointLocation String?  @db.Text // TEXT field for storing keypoint locations
+  descriptor       Bytes?
+  imageURL         String
+  productId        String
+  product          Product  @relation(fields: [productId], references: [productId]) // Relation to ProductVariant
+  colorId          String
+  color            Color    @relation(fields: [colorId], references: [colorId])
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  colorColorId     String?
+
+  @@map("images")
+}
+
+model Voucher {
+  voucherId          String   @id @default(cuid())
+  code               String   @unique // Mã voucher duy nhất
+  discountAmount     Float? // Số tiền giảm
+  discountPercentage Int? // Tỷ lệ giảm giá
+  expiryDate         DateTime // Ngày hết hạn voucher
+  isActive           Boolean  @default(true) // Voucher đang hoạt động hay không
+  description        String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  createdBy          String
+  updatedBy          String
+
+  @@map("vouchers")
 }
