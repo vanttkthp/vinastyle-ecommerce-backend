@@ -20,7 +20,12 @@ export class AuthController {
   @Post('sign-in')
   async signIn(@Req() request: RequestWithUser) {
     const { user } = request;
-    return await this.authService.signIn(user.userId);
+    const role = user.roleName;
+    const token = await this.authService.signIn(user.userId);
+    return {
+      role: role,
+      accessToken: token.accessToken,
+    };
   }
 
   @UseGuards(JwtAccessTokenGuard)

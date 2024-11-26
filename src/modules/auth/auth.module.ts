@@ -6,6 +6,7 @@ import { PassportModule } from '@nestjs/passport';
 import { LocalStrategy } from './strategies';
 import { JwtAccessTokenStrategy } from './strategies';
 import { UserModule } from '../user/user.module';
+import { OrderModule } from '../order/order.module';
 @Module({
   imports: [
     JwtModule.register({
@@ -13,6 +14,7 @@ import { UserModule } from '../user/user.module';
     }),
     PassportModule,
     UserModule,
+    OrderModule
   ],
   controllers: [AuthController],
   providers: [AuthService, LocalStrategy, JwtAccessTokenStrategy],

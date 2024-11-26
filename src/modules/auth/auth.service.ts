@@ -2,6 +2,7 @@ import {
   Injectable,
   BadRequestException,
   ConflictException,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { SignUpDto } from './dto';
@@ -9,7 +10,7 @@ import * as bcrypt from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { TokenPayload } from './interfaces/token-payload.interface';
-import { Response } from 'express';
+import { OrderService } from '../order/order.service';
 
 @Injectable({})
 export class AuthService {
@@ -19,6 +20,7 @@ export class AuthService {
     private prisma: PrismaService,
     private jwtService: JwtService,
     private configService: ConfigService,
+    private orderService: OrderService,
   ) {}
 
   async signUp(signUpDto: SignUpDto) {
@@ -43,11 +45,19 @@ export class AuthService {
           password: hashedPassword,
         },
       });
-      const accessToken = this.generateAccessToken({
-        sub: user.userId,
-      });
+      // const accessToken = this.generateAccessToken({
+      //   sub: user.userId,
+      // });
+      // const order = await this.prisma.order.findMany({
+      //   where: {
+      //     status: 'IN_CART',
+      //   },
+      // });
+      // console.log(order);
+      // if (order) await this.orderService.create(user.userId);
+
       return {
-        accessToken,
+        message: 'Sign up successfully!!',
       };
     } catch (error) {
       const message = error.message || 'Sign up failed!! Try again later.';
@@ -92,12 +102,12 @@ export class AuthService {
       select: {
         userId: true,
         password: true,
-        roleId: true,
         firstName: true,
         lastName: true,
         phoneNumber: true,
         avatar: true,
         gender: true,
+        roleName: true,
       },
     });
 
@@ -122,7 +132,7 @@ export class AuthService {
   ) {
     const isMatching = await bcrypt.compare(plainText, hashedText);
     if (!isMatching) {
-      throw new BadRequestException('Invalid password');
+      throw new UnauthorizedException('Invalid password');
     }
   }
   generateAccessToken(payload: TokenPayload) {

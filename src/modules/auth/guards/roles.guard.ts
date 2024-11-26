@@ -12,12 +12,12 @@ export class RolesGuard implements CanActivate {
 	canActivate(
 		context: ExecutionContext,
 	): boolean | Promise<boolean> | Observable<boolean> {
-		const roles: number[] = this.reflector.getAllAndOverride(ROLES, [
+		const roles: string[] = this.reflector.getAllAndOverride(ROLES, [
 			context.getHandler(),
 			context.getClass(),
 		]);
 		const request: RequestWithUser = context.switchToHttp().getRequest();
-           if (!roles.includes(request.user.roleId as unknown as number)) {
+           if (!roles.includes(request.user.roleName as unknown as string)) {
             throw new ForbiddenException({
               message: 'You are not authorized to access this resource',
             });
