@@ -25,7 +25,6 @@ export class UserController {
     @UseGuards(JwtAccessTokenGuard)
     @Put('/update')
     updateUser(@Req() req, @Body() data: UpdateUserDto) {
-        console.log(data);
         return this.userService.updateUser(req.user.userId, data);
     }
 

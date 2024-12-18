@@ -38,7 +38,73 @@ export class ProductService {
         select: {
           name: true,
           createdBy: true,
+          productId: true,
         },
+      });
+      const colorId = dto.colorId;
+      const productId = newProduct.productId;
+
+      const imagesData = dto.imageURLs.map((url) => ({
+        colorId,
+        productId,
+        imageURL: url,
+      }));
+
+      // Thực hiện tạo nhiều bản ghi trong bảng images
+      await this.prismaService.image.createMany({
+        data: imagesData,
+      });
+      return {
+        message: SuccessMessage(model.PRODUCT, action.CREATE),
+        product: newProduct,
+      };
+    } catch {
+      throw new BadRequestException();
+    }
+  }
+
+  async createWithVariants(name: string, dto: CreateProductDto) {
+    try {
+      const newProduct = await this.prismaService.product.create({
+        data: {
+          createdBy: name,
+          description: dto.description,
+          name: dto.name,
+          price: dto.price,
+          brand: {
+            connect: {
+              brandId: dto.brandId,
+            },
+          },
+          category: {
+            connect: {
+              categoryId: dto.categoryId,
+            },
+          },
+          subCategory: {
+            connect: {
+              subCategoryId: dto.subCategoryId,
+            },
+          },
+        },
+        select: {
+          name: true,
+          createdBy: true,
+          productId: true,
+        },
+      });
+      const colorId = dto.colorId;
+      const productId = newProduct.productId;
+
+      const imagesData = dto.imageURLs.map((url) => ({
+        colorId,
+        productId,
+        imageURL: url,
+      }));
+
+      // Thực hiện tạo nhiều bản ghi trong bảng images
+      await this.prismaService.image.createMany({
+        data: imagesData,
       });
       return {
         message: SuccessMessage(model.PRODUCT, action.CREATE),
@@ -84,6 +150,22 @@ export class ProductService {
         categoryId: true,
         subCategoryId: true,
         brandId: true,
+        productVariants: {
+          select: {
+            color: {
+              select: {
+                name: true,
+                colorId: true,
+                hexCode: true,
+              },
+            },
+            size: {
+              select: {
+                sizeType: true,
+              },
+            },
+          },
+        },
       },
     });
 
@@ -212,11 +294,13 @@ export class ProductService {
         price: true,
         category: {
           select: {
+            categoryId: true,
             name: true,
           },
         },
         subCategory: {
           select: {
+            subCategoryId: true,
             name: true,
           },
         },

@@ -6,5 +6,6 @@ export enum model {
   SUB_CATEGORY = 'sub category',
   SIZE = 'size',
   PRODUCT_VARIANT= ' product variant',
-  ORDER = 'order'
+  ORDER = 'order',
+  ORDER_ITEM = 'order item'
 }

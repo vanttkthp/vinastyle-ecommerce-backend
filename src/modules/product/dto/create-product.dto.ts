@@ -26,5 +26,22 @@ export class CreateProductDto {
   subCategoryId: string;
   @IsNotEmpty()
   @IsString()
-  brandId: string;
+  @IsOptional()
+  brandId: string = "mlb";
+
+  //product-variant
+  @IsNotEmpty()
+  @IsString()
+  colorId: string;
+  // @IsNotEmpty()
+  // @IsString()
+  // sizeId: string;
+  // @IsNotEmpty()
+  // @IsNumber()
+  // stock: number;
+
+  //images
+  @IsNotEmpty()
+  @IsArray()
+  imageURLs: string[];
 }

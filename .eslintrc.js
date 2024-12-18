@@ -5,6 +5,9 @@ module.exports = {
     tsconfigRootDir: __dirname,
     sourceType: 'module',
   },
+  devServer: {
+    allowedHosts: 'all', // Cho phép tất cả host
+  },
   plugins: ['@typescript-eslint/eslint-plugin'],
   extends: [
     'plugin:@typescript-eslint/recommended',

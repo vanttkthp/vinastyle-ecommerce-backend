@@ -15,9 +15,9 @@ export class AddressController {
     }
 
     @UseGuards(JwtAccessTokenGuard)
-    @Get('get-all')
+    @Get('all')
     async getAllAddress(@Req() req) {
-        return this.addressService.getAllAddress(req.user.userId);
+        return this.addressService.getAllByUserId(req.user.userId);
     }
 
     @UseGuards(JwtAccessTokenGuard)

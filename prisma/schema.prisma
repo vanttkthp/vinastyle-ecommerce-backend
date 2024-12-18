@@ -15,21 +15,23 @@ datasource db {
 
 // 1. User
 model User {
-  userId      String    @id @default(cuid())
-  email       String    @unique
-  firstName   String?
-  lastName    String?
-  password    String
-  phoneNumber String?
-  avatar      String?
-  gender      Gender?
-  addresses   Address[]
-  wishlist    Wishlist?
-  orders      Order[]
-  roleName    RoleName  @default(CUSTOMER)
-  role        Role      @relation(fields: [roleName], references: [roleName])
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  userId           String    @id @default(cuid())
+  email            String    @unique
+  firstName        String?
+  lastName         String?
+  password         String
+  phoneNumber      String?
+  avatar           String?
+  gender           Gender?
+  addresses        Address[]
+  wishlist         Wishlist?
+  orders           Order[]
+  verificationCode String?
+  isVerified       Boolean   @default(false)
+  roleName         RoleName  @default(CUSTOMER)
+  role             Role      @relation(fields: [roleName], references: [roleName])
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
 
   @@map("users")
 }

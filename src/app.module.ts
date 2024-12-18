@@ -18,6 +18,8 @@ import { SizeModule } from './modules/size/size.module';
 import { SubCategory } from './modules/sub-category/entities/sub-category.entity';
 import { SubCategoryModule } from './modules/sub-category/sub-category.module';
 import { VoucherModule } from './voucher/voucher.module';
+import { EmailModule } from './modules/email/email.module';
+import { StatisticModule } from './modules/statistic/statistic.module';
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -40,6 +42,8 @@ import { VoucherModule } from './voucher/voucher.module';
     SizeModule,
     SubCategoryModule,
     VoucherModule,
+    EmailModule,
+    StatisticModule,
   ],
 })
 export class AppModule {}

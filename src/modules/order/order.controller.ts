@@ -35,8 +35,8 @@ export class OrderController {
   @UseGuards(RolesGuard)
   @UseGuards(JwtAccessTokenGuard)
   @Get('all')
-  async findAll(@Query() dto: PageOptionDto) {
-    return await this.orderService.findAll(dto);
+  async findAllByAdmin(@Query() dto: PageOptionDto) {
+    return await this.orderService.findAllByAdmin(dto);
   }
 
   @Roles(RoleName.ADMIN, RoleName.STAFF)
@@ -57,8 +57,54 @@ export class OrderController {
   }
 
   @UseGuards(JwtAccessTokenGuard)
-  @Put('/complete-order')
+  @Put('complete-order')
   async update(@Req() request: RequestWithUser, @Body() dto: UpdateOrderDto) {
     return await this.orderService.update(request.user.userId, dto);
+  }
+
+  @UseGuards(JwtAccessTokenGuard)
+  @Put('cancel-by-user/:id')
+  async cancelOrderByUser(
+    @Req() request: RequestWithUser,
+    @Param('id') id: string,
+    @Body() data: UpdateOrderDto,
+  ) {
+    return await this.orderService.cancelOrderByUser(
+      request.user.userId,
+      id,
+      data,
+    );
+  }
+
+  @Roles(RoleName.ADMIN, RoleName.STAFF)
+  @UseGuards(RolesGuard)
+  @UseGuards(JwtAccessTokenGuard)
+  @Put('cancel-by-admin/:id')
+  async cancelOrderByAdminAndStaff(
+    @Req() req: RequestWithUser,
+    @Param('id') id: string,
+    @Body() data: UpdateOrderDto,
+  ) {
+    return await this.orderService.cancelOrderByAdminAndStaff(
+      req.user.userId,
+      id,
+      data,
+    );
+  }
+
+  @Roles(RoleName.ADMIN, RoleName.STAFF)
+  @UseGuards(RolesGuard)
+  @UseGuards(JwtAccessTokenGuard)
+  @Put('accept-by-admin/:id')
+  async acceptOrderByAdminAndStaff(
+    @Req() req: RequestWithUser,
+    @Param('id') id: string,
+    @Body() data: UpdateOrderDto,
+  ) {
+    return await this.orderService.acceptOrderByAdminAndStaff(
+      req.user.userId,
+      id,
+      data,
+    );
   }
 }

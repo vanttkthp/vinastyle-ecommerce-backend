@@ -18,16 +18,17 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 import { RoleName } from '@prisma/client';
 import { Roles } from 'src/decorators/roles.decorator';
 import { PageOptionDto } from 'src/common/dtos/page-option.dto';
+import { RequestWithUser } from 'src/types/request.type';
 
 @Controller('api/v1/products')
 export class ProductController {
   constructor(private readonly productService: ProductService) {}
 
-  @Roles(RoleName.ADMIN, RoleName.STAFF, RoleName.CUSTOMER)
+  @Roles(RoleName.ADMIN)
   @UseGuards(RolesGuard)
   @UseGuards(JwtAccessTokenGuard)
   @Post('create')
-  create(@Req() req, @Body() dto: CreateProductDto) {
+  create(@Req() req: RequestWithUser, @Body() dto: CreateProductDto) {
     const name = `${req.user.roleName} ${req.user.firstName} ${req.user.lastName}`
     return this.productService.create(name, dto);
   }

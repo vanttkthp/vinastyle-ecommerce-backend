@@ -30,7 +30,7 @@ export class UpdateUserDto {
   @IsString()
   @IsEnum(Gender, { message: 'Gender must be a valid value' })
   @IsOptional()
-  gender: string;
+  gender: Gender;
 
   @IsString()
   @IsOptional()

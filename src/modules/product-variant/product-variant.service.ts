@@ -29,7 +29,7 @@ export class ProductVariantService {
         data: {
           createdBy: name,
           colorId: dto.colorId,
-          SKU: dto.SKU,
+          SKU: `${dto.colorId}-${dto.sizeId}-${dto.productId}`,
           productId: dto.productId,
           sizeId: dto.sizeId,
           stock: dto.stock,

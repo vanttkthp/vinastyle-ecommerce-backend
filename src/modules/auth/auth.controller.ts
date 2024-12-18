@@ -1,8 +1,17 @@
-import { Controller, Post, Body, Res, UseGuards, Req } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  Res,
+  UseGuards,
+  Req,
+  Query,
+} from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { SignUpDto } from './dto';
 import { LocalAuthGuard, JwtAccessTokenGuard } from './guards';
 import { RequestWithUser } from 'src/types/request.type';
+import e from 'express';
 
 @Controller({
   path: 'api/v1/auth',
@@ -33,5 +42,24 @@ export class AuthController {
   signOut(@Req() request: RequestWithUser) {
     const { user } = request;
     return this.authService.signOut(user.userId);
+  }
+
+  @Post('reset-password')
+  async resetPassword(
+    @Query('token') token: string,
+    @Body() body: { newPassword: string; confirmNewPassword: string },
+  ) {
+    const { newPassword, confirmNewPassword } = body;
+    return await this.authService.resetPassword(
+      token,
+      newPassword,
+      confirmNewPassword,
+    );
+  }
+
+  @Post('verify-account')
+  async verifyAccount(@Body() body: {code: string }, @Query('email') email: string) {
+    const { code } = body;
+    return this.authService.verifyAccount(email, code);
   }
 }

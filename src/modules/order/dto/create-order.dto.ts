@@ -3,6 +3,10 @@ import { IsEnum, IsNotEmpty, IsOptional, IsString } from 'class-validator';
 
 export class CreateOrderDto {
   @IsString()
+  @IsOptional()
+  addressId: string;
+
+  @IsString()
   @IsNotEmpty()
   addressDetail: string;
 
@@ -19,14 +23,14 @@ export class CreateOrderDto {
   ward: string;
 
   @IsString()
-  @IsNotEmpty()
-  paymentId: string;
-
-  @IsString()
   @IsOptional()
   shipmentMethod?: ShipmentMethod;
 
   @IsEnum(PaymentMethod)
   @IsOptional()
   paymentMethod?: PaymentMethod;
+
+  @IsString()
+  @IsOptional()
+  note?: string;
 }

@@ -3,6 +3,7 @@ import {
   BadRequestException,
   ConflictException,
   UnauthorizedException,
+  NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { SignUpDto } from './dto';
@@ -11,6 +12,8 @@ import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { TokenPayload } from './interfaces/token-payload.interface';
 import { OrderService } from '../order/order.service';
+import { OrderStatus } from '@prisma/client';
+import { EmailService } from '../email/email.service';
 
 @Injectable({})
 export class AuthService {
@@ -21,6 +24,7 @@ export class AuthService {
     private jwtService: JwtService,
     private configService: ConfigService,
     private orderService: OrderService,
+    private emailService: EmailService,
   ) {}
 
   async signUp(signUpDto: SignUpDto) {
@@ -39,10 +43,23 @@ export class AuthService {
         throw new ConflictException('Email already existed!!');
       }
       const hashedPassword = await this.hashPassword(signUpDto.password);
+      const verificationCode = this.generateVerificationCode();
       const user = await this.prisma.user.create({
         data: {
           email: signUpDto.email,
           password: hashedPassword,
+          verificationCode: verificationCode,
+        },
+        select: {
+          userId: true,
+        },
+      });
+      const newOrder = await this.prisma.order.create({
+        data: {
+          totalAmount: 0,
+          totalPrice: 0,
+          userId: user.userId,
+          status: OrderStatus.IN_CART,
         },
       });
       // const accessToken = this.generateAccessToken({
@@ -55,6 +72,11 @@ export class AuthService {
       // });
       // console.log(order);
       // if (order) await this.orderService.create(user.userId);
+
+      await this.emailService.sendVerificationCode(
+        signUpDto.email,
+        verificationCode,
+      );
 
       return {
         message: 'Sign up successfully!!',
@@ -143,5 +165,86 @@ export class AuthService {
         'JWT_ACCESS_TOKEN_EXPIRATION_TIME',
       )}s`,
     });
+  }
+
+  private async verifyResetToken(token: string) {
+    try {
+      const decoded = this.jwtService.verify(token, {
+        secret: this.configService.get<string>('JWT_SECRET_KEY'),
+        algorithms: ['HS256'],
+      });
+      return decoded; // Trả về thông tin người dùng từ token
+    } catch (error) {
+      throw new BadRequestException('Token is invalid or expired');
+    }
+  }
+  async resetPassword(
+    token: string,
+    newPassword: string,
+    confirmNewPassword: string,
+  ) {
+    const decoded = await this.verifyResetToken(token);
+    if (newPassword !== confirmNewPassword)
+      throw new BadRequestException(
+        'Password and confirm password do not match!!',
+      );
+    const hashedPassword = await this.hashPassword(newPassword);
+    await this.prisma.user.update({
+      where: {
+        userId: decoded.id,
+      },
+      data: {
+        password: hashedPassword,
+      },
+    });
+  }
+
+  private generateVerificationCode(): string {
+    return Math.floor(100000 + Math.random() * 900000).toString(); // Mã 6 chữ số
+  }
+
+  private async sendAccountVerificationEmail(userEmail: string) {
+    const verificationCode = this.generateVerificationCode();
+
+    // Lưu mã xác nhận vào cơ sở dữ liệu (ví dụ thêm trường `verificationCode` trong user entity)
+    await this.prisma.user.update({
+      where: {
+        email: userEmail,
+      },
+      data: {
+        verificationCode: verificationCode,
+      },
+    });
+
+    // Gửi mã xác nhận qua email
+    await this.emailService.sendVerificationCode(userEmail, verificationCode);
+
+    return { message: 'Verification code sent to email' };
+  }
+
+  async verifyAccount(email: string, code: string) {
+    // Lấy người dùng từ cơ sở dữ liệu
+    const user = await this.prisma.user.findUnique({ where: { email } });
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    // Kiểm tra mã xác nhận
+    if (user.verificationCode !== code) {
+      throw new BadRequestException('Invalid verification code');
+    }
+
+    // Cập nhật trạng thái tài khoản
+    await this.prisma.user.update({
+      where: {
+        email: email,
+      },
+      data: {
+        isVerified: true,
+        verificationCode: null,
+      },
+    });
+
+    return { message: 'Account verified successfully' };
   }
 }

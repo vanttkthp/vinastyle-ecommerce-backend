@@ -16,10 +16,15 @@ async function bootstrap() {
   );
   app.useGlobalFilters(new ValidationExceptionFilter());
   app.enableCors({
-    origin: true, // Your client URL
+    origin: true,
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE', // Allowed methods
     allowedHeaders: 'Content-Type, Authorization, ngrok-skip-browser-warning', // Add the ngrok header
     credentials: true, // Enable if you need to send cookies
+    // allowedHosts: [
+    //   "localhost", // Thêm các host cụ thể mà bạn cho phép
+    //   ".example.com", // Hoặc sử dụng pattern
+    // ],
+
   });
   await app.listen(configService.get('PORT'), () => {
     console.log(`Server is running on port ${configService.get('PORT')}`);

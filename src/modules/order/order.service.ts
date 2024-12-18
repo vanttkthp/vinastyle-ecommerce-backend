@@ -2,16 +2,25 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateOrderDto } from './dto/update-order.dto';
 import { PrismaService } from '../prisma/prisma.service';
-import { OrderStatus, PaymentMethod, ShipmentMethod } from '@prisma/client';
+import {
+  OrderStatus,
+  PaymentMethod,
+  PaymentStatus,
+  ShipmentMethod,
+} from '@prisma/client';
 import { formatDate } from 'src/helpers';
 import { PageOptionDto } from 'src/common/dtos/page-option.dto';
 import { PageDto } from 'src/common/dtos/page.dto';
 import { foundAllMessage, model } from 'src/enums';
 import { PageMetaDto } from 'src/common/dtos/page-meta.dto';
+import { EmailService } from '../email/email.service';
 
 @Injectable()
 export class OrderService {
-  constructor(private prismaService: PrismaService) {}
+  constructor(
+    private prismaService: PrismaService,
+    private emailService: EmailService,
+  ) {}
 
   async create(id: string) {
     const orderItems = await this.prismaService.orderItem.findMany({
@@ -89,7 +98,7 @@ export class OrderService {
       size: item.productVariant.size.sizeType,
       imageURL: item.productVariant.product.images[0].imageURL,
       productId: item.productVariant.productId,
-      productVariantId: item.productVariant.productVariantId
+      productVariantId: item.productVariant.productVariantId,
     }));
 
     return {
@@ -125,7 +134,7 @@ export class OrderService {
                 color: {
                   select: {
                     hexCode: true,
-                    name: true
+                    name: true,
                   },
                 },
                 size: {
@@ -141,7 +150,7 @@ export class OrderService {
                       },
                     },
                     name: true,
-                    price: true
+                    price: true,
                   },
                 },
               },
@@ -170,7 +179,7 @@ export class OrderService {
     return orders;
   }
 
-  async findAll(pageOption: PageOptionDto) {
+  async findAllByAdmin(pageOption: PageOptionDto) {
     const { page, limit, skip, status } = pageOption;
 
     const whereCondition = status ? { status: { equals: status } } : {};
@@ -184,24 +193,48 @@ export class OrderService {
       take: limit,
       skip: skip,
       select: {
-        status: true,
         orderId: true,
-        user: {
+        userId: true,
+        totalAmount: true,
+        totalPrice: true,
+        orderDate: true,
+        orderItems: {
           select: {
-            lastName: true,
-            firstName: true,
+            orderItemId: true,
+            quantity: true,
+            total: true,
+            productVariant: {
+              select: {
+                color: {
+                  select: {
+                    hexCode: true,
+                    name: true,
+                  },
+                },
+                size: {
+                  select: {
+                    sizeType: true,
+                  },
+                },
+                product: {
+                  select: {
+                    images: {
+                      select: {
+                        imageURL: true,
+                      },
+                    },
+                    name: true,
+                    price: true,
+                  },
+                },
+              },
+            },
           },
         },
-        payment: {
-          select: {
-            paymentMethod: true,
-          },
-        },
-        shipment: {
-          select: {
-            estimatedDeliveryDate: true,
-          },
-        },
+        discountAmount: true,
+        shipmentId: true,
+        note: true,
+        status: true,
       },
     });
 
@@ -224,7 +257,7 @@ export class OrderService {
     else {
       switch (method) {
         case 'EXPRESS':
-          return 60000;
+          return 50000;
         case 'SHIPMENT':
           return 30000;
         default:
@@ -293,7 +326,18 @@ export class OrderService {
           ),
         },
       });
-      if (shipment) {
+      const payment = await this.prismaService.payment.create({
+        data: {
+          amount: order.totalPrice + shipment.estimatedCost,
+          paymentMethod: dto.paymentMethod,
+          status:
+            dto.paymentMethod === PaymentMethod.MOMO ||
+            dto.paymentMethod === PaymentMethod.ZALO
+              ? PaymentStatus.PAID
+              : PaymentStatus.PENDING,
+        },
+      });
+      if (shipment && payment) {
         const updatedOrder = await this.prismaService.order.update({
           where: {
             orderId: order.orderId,
@@ -303,7 +347,7 @@ export class OrderService {
               connect: { shipmentId: shipment.shipmentId },
             },
             payment: {
-              connect: { paymentId: dto.paymentId },
+              connect: { paymentId: payment.paymentId },
             },
             status: OrderStatus.PENDING,
             totalAmount: order.totalPrice + shipment.estimatedCost,
@@ -317,6 +361,9 @@ export class OrderService {
           ...shipment,
           shipmentDate: formatDate(shipment.shipmentDate),
           estimatedDeliveryDate: formatDate(shipment.estimatedDeliveryDate),
+          amount: payment.amount,
+          paymentStatus: payment.status,
+          paymentMethod: payment.paymentMethod,
         };
       }
     }
@@ -324,5 +371,124 @@ export class OrderService {
     return {
       message: 'Something went wrong',
     };
+  }
+  async cancelOrderByUser(
+    userId: string,
+    orderId: string,
+    data: UpdateOrderDto,
+  ) {
+    const order = await this.prismaService.order.findUnique({
+      where: {
+        orderId: orderId,
+        userId: userId,
+        status: OrderStatus.PENDING,
+      },
+    });
+    if (!order) throw new BadRequestException();
+
+    return await this.prismaService.order.update({
+      where: {
+        orderId: order.orderId,
+      },
+      data: {
+        status: OrderStatus.CANCELLED,
+        note: data.note,
+      },
+    });
+  }
+
+  async cancelOrderByAdminAndStaff(
+    userId: string,
+    orderId: string,
+    data: UpdateOrderDto,
+  ) {
+    const order = await this.prismaService.order.findUnique({
+      where: {
+        orderId: orderId,
+        status: OrderStatus.PENDING || OrderStatus.SHIPPING,
+      },
+    });
+    const user = await this.prismaService.user.findUnique({
+      where: {
+        userId: userId,
+      },
+    });
+    if (!order) throw new BadRequestException();
+
+    return await this.prismaService.order.update({
+      where: {
+        orderId: order.orderId,
+      },
+      data: {
+        status: OrderStatus.CANCELLED,
+        note: `${user.roleName} ${user.firstName} ${user.lastName} with id: ${user.userId} said that: ${data.note ?? 'nothing!'}`,
+      },
+    });
+  }
+
+  async acceptOrderByAdminAndStaff(
+    userId: string,
+    orderId: string,
+    data: UpdateOrderDto,
+  ) {
+    const order = await this.prismaService.order.findUnique({
+      where: {
+        orderId: orderId,
+        status: OrderStatus.PENDING,
+      },
+      select: {
+        orderId: true,
+        orderItems: {
+          select: {
+            quantity: true,
+            total: true,
+            productVariant: {
+              select: {
+                colorId: true,
+                sizeId: true,
+                product: {
+                  select: {
+                    name: true,
+                    images: {
+                      select: {
+                        imageURL: true,
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+        user: {
+          select: {
+            lastName: true,
+            email: true,
+          },
+        },
+      },
+    });
+    const user = await this.prismaService.user.findUnique({
+      where: {
+        userId: userId,
+      },
+    });
+    if (!order) throw new BadRequestException();
+
+    await this.emailService.confirmOrderNotification(
+      order.user.email,
+      order.user.lastName,
+      orderId,
+      order.orderItems,
+    );
+
+    return await this.prismaService.order.update({
+      where: {
+        orderId: order.orderId,
+      },
+      data: {
+        status: OrderStatus.SHIPPING,
+      },
+    });
   }
 }

@@ -33,7 +33,7 @@ export class AddressService {
     };
   }
 
-  async getAllAddress(userId: string) {
+  async getAllByUserId(userId: string) {
     const addresses = await this.prisma.address.findMany({
       where: {
         userId: userId,
