@@ -20,6 +20,8 @@ import { SubCategoryModule } from './modules/sub-category/sub-category.module';
 import { VoucherModule } from './voucher/voucher.module';
 import { EmailModule } from './modules/email/email.module';
 import { StatisticModule } from './modules/statistic/statistic.module';
+import { MomoModule } from './modules/momo/momo.module';
+import { ReviewModule } from './modules/review/review.module';
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -44,6 +46,8 @@ import { StatisticModule } from './modules/statistic/statistic.module';
     VoucherModule,
     EmailModule,
     StatisticModule,
+    MomoModule,
+    ReviewModule,
   ],
 })
 export class AppModule {}

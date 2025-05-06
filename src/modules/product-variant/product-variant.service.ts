@@ -47,6 +47,7 @@ export class ProductVariantService {
     const product = await this.prismaService.product.findUnique({
       where: {
         productId: id,
+        isActive: true
       },
     });
     if (!product) throw new BadRequestException(message.ID_NOT_FOUND);
@@ -83,9 +84,21 @@ export class ProductVariantService {
           productVariantId: id,
         },
         data: {
-          colorId: dto.colorId,
-          sizeId: dto.sizeId,
-          productId: dto.productId,
+          color: {
+            connect: {
+              colorId: dto.colorId,
+            },
+          },
+          size: {
+            connect: {
+              sizeId: dto.sizeId,
+            },
+          },
+          product: {
+            connect: {
+              productId: dto.productId,
+            },
+          },
           createdBy: name,
           stock: dto.stock,
           SKU: dto.SKU,
@@ -100,9 +113,13 @@ export class ProductVariantService {
   }
 
   async remove(id: string) {
-    const variant = await this.prismaService.productVariant.findUnique({
+    const variant = await this.prismaService.productVariant.update({
       where: {
         productVariantId: id,
+        isActive: true,
+      },
+      data: {
+        isActive: false,
       },
     });
     if (!variant) {

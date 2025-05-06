@@ -1,0 +1,344 @@
+    //// ------------------------------------------------------
+//// THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
+//// ------------------------------------------------------
+
+Table users {
+  userId String [pk]
+  email String [unique, not null]
+  firstName String
+  lastName String
+  password String [not null]
+  phoneNumber String
+  avatar String
+  gender Gender
+  addresses addresses [not null]
+  wishlist wishlists
+  orders orders [not null]
+  verificationCode String
+  isVerified Boolean [not null, default: false]
+  roleName RoleName [not null, default: 'CUSTOMER']
+  role roles [not null]
+  createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [not null]
+}
+
+Table roles {
+  roleId Int [pk, increment]
+  roleName RoleName [unique, not null]
+  description String
+  users users [not null]
+  createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [not null]
+  createdBy String
+  updatedBy String
+}
+
+Table addresses {
+  addressId String [pk]
+  addressDetail String [not null]
+  country String [not null, default: 'Viet Nam']
+  city String [not null]
+  district String [not null]
+  ward String [not null]
+  street String
+  houseNumber String
+  postalCode String
+  userId String [not null]
+  user users [not null]
+  shipments shipments [not null]
+  createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [not null]
+}
+
+Table products {
+  productId String [pk]
+  name String [not null]
+  description String [not null]
+  price Float [not null]
+  categoryId String [not null]
+  category categories [not null]
+  subCategoryId String [not null]
+  subCategory sub_categories [not null]
+  brandId String [not null]
+  brand brands [not null]
+  productVariants product_variants [not null]
+  images images [not null]
+  createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [not null]
+  createdBy String
+  updatedBy String
+}
+
+Table categories {
+  categoryId String [pk]
+  name String [not null]
+  description String
+  products products [not null]
+  subCategories sub_categories [not null]
+  forMale Boolean [not null, default: true]
+  forFeMale Boolean [not null, default: true]
+  unisex Boolean [not null, default: true]
+  createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [not null]
+  createdBy String
+  updatedBy String
+}
+
+Table sub_categories {
+  subCategoryId String [pk]
+  name String [not null]
+  description String
+  categoryId String [not null]
+  category categories [not null]
+  products products [not null]
+  createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [not null]
+  createdBy String
+  updatedBy String
+}
+
+Table brands {
+  brandId String [pk]
+  name String [not null]
+  description String
+  logo String
+  products products [not null]
+  createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [not null]
+  createdBy String
+  updatedBy String
+}
+
+Table product_variants {
+  productVariantId String [pk]
+  productId String [not null]
+  product products [not null]
+  sizeId String [not null]
+  size sizes [not null]
+  stock Int [not null]
+  SKU String [not null]
+  soldQuantity Int [not null, default: 0]
+  orderItem order_items [not null]
+  wishlists wishlists [not null]
+  colorId String [not null]
+  color colors [not null]
+  createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [not null]
+  createdBy String
+  updatedBy String
+}
+
+Table sizes {
+  sizeId String [pk]
+  sizeType SizeType [not null]
+  productVariants product_variants [not null]
+  createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [not null]
+  createdBy String
+  updatedBy String
+}
+
+Table colors {
+  colorId String [pk]
+  productVariants product_variants [not null]
+  name String[] [not null]
+  hexCode String[] [not null]
+  description String
+  createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [not null]
+  createdBy String
+  updatedBy String
+}
+
+Table wishlists {
+  wishlistId String [pk]
+  user users [not null]
+  userId String [unique, not null]
+  productVariantId String [not null]
+  productVariant product_variants [not null]
+  createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [not null]
+}
+
+Table orders {
+  orderId String [pk]
+  userId String
+  user users
+  orderItems order_items [not null]
+  totalPrice Float [not null]
+  orderDate DateTime [default: `now()`, not null]
+  status OrderStatus [not null, default: 'IN_CART']
+  totalAmount Float [not null]
+  discountAmount Float [not null, default: 0]
+  shipmentId String
+  shipment shipments
+  paymentId String
+  payment payments
+  note String
+  createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [not null]
+}
+
+Table order_items {
+  orderItemId String [pk]
+  orderId String [not null]
+  order orders [not null]
+  quantity Int [not null]
+  total Float [not null]
+  productVariantId String [not null]
+  productVariant product_variants [not null]
+  createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [not null]
+}
+
+Table shipments {
+  shipmentId String [pk]
+  shipmentMethod ShipmentMethod [not null, default: 'SHIPMENT']
+  orders orders [not null]
+  shipmentDate DateTime [default: `now()`, not null]
+  status ShipmentStatus [not null, default: 'PENDING']
+  estimatedDeliveryDate DateTime
+  estimatedCost Float
+  addressId String [not null]
+  address addresses [not null]
+  createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [not null]
+}
+
+Table payments {
+  paymentId String [pk]
+  paymentDate DateTime [default: `now()`, not null]
+  paymentMethod PaymentMethod [not null, default: 'COD']
+  orders orders [not null]
+  amount Float [not null]
+  status PaymentStatus [not null, default: 'PENDING']
+  createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [not null]
+}
+
+Table images {
+  imageId String [pk]
+  featureVector Json
+  imageURL String [not null]
+  productId String [not null]
+  product products [not null]
+  colorName String
+  category String
+  createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [not null]
+}
+
+Table vouchers {
+  voucherId String [pk]
+  code String [unique, not null]
+  discountAmount Float
+  discountPercentage Int
+  expiryDate DateTime [not null]
+  isActive Boolean [not null, default: true]
+  description String
+  createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [not null]
+  createdBy String [not null]
+  updatedBy String [not null]
+}
+
+Enum Gender {
+  MALE
+  FEMALE
+  OTHER
+}
+
+Enum RoleName {
+  ADMIN
+  STAFF
+  CUSTOMER
+}
+
+Enum City {
+  HANOI
+  HAIPHONG
+  THANHHOA
+  NAMDINH
+}
+
+Enum SizeType {
+  XS
+  S
+  M
+  L
+  XL
+  XXL
+  XXXL
+}
+
+Enum OrderStatus {
+  IN_CART
+  PENDING
+  SHIPPING
+  DELIVERED
+  CANCELLED
+}
+
+Enum ShipmentMethod {
+  SHIPMENT
+  PICKUP
+  EXPRESS
+  COURIER
+}
+
+Enum ShipmentStatus {
+  PENDING
+  SHIPPING
+  DELIVERED
+  CANCELLED
+}
+
+Enum PaymentMethod {
+  MOMO
+  ZALO
+  COD
+}
+
+Enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+  CANCELLED
+}
+
+Ref: users.roleName > roles.roleName
+
+Ref: addresses.userId > users.userId
+
+Ref: products.categoryId > categories.categoryId
+
+Ref: products.subCategoryId > sub_categories.subCategoryId
+
+Ref: products.brandId > brands.brandId
+
+Ref: sub_categories.categoryId > categories.categoryId
+
+Ref: product_variants.productId > products.productId
+
+Ref: product_variants.sizeId > sizes.sizeId
+
+Ref: product_variants.colorId > colors.colorId
+
+Ref: wishlists.userId - users.userId
+
+Ref: wishlists.productVariantId > product_variants.productVariantId
+
+Ref: orders.userId > users.userId
+
+Ref: orders.shipmentId > shipments.shipmentId
+
+Ref: orders.paymentId > payments.paymentId
+
+Ref: order_items.orderId > orders.orderId
+
+Ref: order_items.productVariantId > product_variants.productVariantId
+
+Ref: shipments.addressId > addresses.addressId
+
+Ref: images.productId > products.productId

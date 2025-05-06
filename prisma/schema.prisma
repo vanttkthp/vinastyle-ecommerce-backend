@@ -8,6 +8,10 @@ generator client {
   provider = "prisma-client-js"
 }
 
+generator dbml {
+  provider = "prisma-dbml-generator"
+}
+
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
@@ -28,8 +32,10 @@ model User {
   orders           Order[]
   verificationCode String?
   isVerified       Boolean   @default(false)
+  isActive         Boolean?  @default(true)
   roleName         RoleName  @default(CUSTOMER)
   role             Role      @relation(fields: [roleName], references: [roleName])
+  reviews          Review[]
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
 
@@ -48,6 +54,7 @@ model Role {
   roleName    RoleName @unique
   description String?
   users       User[]
+  isActive    Boolean? @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   createdBy   String?
@@ -75,6 +82,7 @@ model Address {
   houseNumber   String?
   postalCode    String?
   userId        String
+  isActive      Boolean?   @default(true)
   user          User       @relation(fields: [userId], references: [userId])
   shipments     Shipment[]
   createdAt     DateTime   @default(now())
@@ -102,10 +110,12 @@ model Product {
   subCategory     SubCategory      @relation(fields: [subCategoryId], references: [subCategoryId])
   brandId         String
   brand           Brand            @relation(fields: [brandId], references: [brandId])
+  isActive        Boolean?         @default(true)
   productVariants ProductVariant[]
   images          Image[]
-  createdAt       DateTime         @default(now())
-  updatedAt       DateTime         @updatedAt
+  reviews         Review[]
+  createdAt       DateTime?        @default(now())
+  updatedAt       DateTime?        @updatedAt
   createdBy       String?
   updatedBy       String?
 
@@ -122,6 +132,7 @@ model Category {
   forMale       Boolean       @default(true)
   forFeMale     Boolean       @default(true)
   unisex        Boolean       @default(true)
+  isActive      Boolean?      @default(true)
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
   createdBy     String?
@@ -137,6 +148,7 @@ model SubCategory {
   categoryId    String
   category      Category  @relation(fields: [categoryId], references: [categoryId])
   products      Product[]
+  isActive      Boolean?  @default(true)
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
   createdBy     String?
@@ -152,6 +164,7 @@ model Brand {
   description String?
   logo        String?
   products    Product[]
+  isActive    Boolean?  @default(true)
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
   createdBy   String?
@@ -174,8 +187,9 @@ model ProductVariant {
   wishlists        Wishlist[]
   colorId          String
   color            Color       @relation(fields: [colorId], references: [colorId])
-  createdAt        DateTime    @default(now())
-  updatedAt        DateTime    @updatedAt
+  isActive         Boolean?    @default(true)
+  createdAt        DateTime?   @default(now())
+  updatedAt        DateTime?   @updatedAt
   createdBy        String?
   updatedBy        String?
 
@@ -186,6 +200,7 @@ model Size {
   sizeId          String           @id @default(cuid())
   sizeType        SizeType
   productVariants ProductVariant[]
+  isActive        Boolean?         @default(true)
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
   createdBy       String?
@@ -200,8 +215,8 @@ model Color {
   productVariants ProductVariant[]
   name            String[]
   hexCode         String[]
-  images          Image[]
   description     String?
+  isActive        Boolean?         @default(true)
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
   createdBy       String?
@@ -218,6 +233,9 @@ enum SizeType {
   XL
   XXL
   XXXL
+  A39
+  A40
+  A41
 }
 
 // 9. Wishlist
@@ -248,6 +266,7 @@ model Order {
   shipment       Shipment?   @relation(fields: [shipmentId], references: [shipmentId])
   paymentId      String?
   payment        Payment?    @relation(fields: [paymentId], references: [paymentId])
+  isActive       Boolean?    @default(true)
   note           String?
   createdAt      DateTime    @default(now())
   updatedAt      DateTime    @updatedAt
@@ -272,6 +291,7 @@ model OrderItem {
   total            Float
   productVariantId String
   productVariant   ProductVariant @relation(fields: [productVariantId], references: [productVariantId])
+  isActive         Boolean?       @default(true)
   createdAt        DateTime       @default(now())
   updatedAt        DateTime       @updatedAt
 
@@ -289,6 +309,7 @@ model Shipment {
   estimatedCost         Float? // Chi phí dự kiến cho giao hàng
   addressId             String
   address               Address        @relation(fields: [addressId], references: [addressId])
+  isActive              Boolean?       @default(true)
   createdAt             DateTime       @default(now())
   updatedAt             DateTime       @updatedAt
 
@@ -317,6 +338,7 @@ model Payment {
   orders        Order[]
   amount        Float
   status        PaymentStatus @default(PENDING)
+  isActive      Boolean?      @default(true)
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
 
@@ -338,33 +360,37 @@ enum PaymentStatus {
 }
 
 model Image {
-  imageId          String   @id @default(cuid())
-  keypointLocation String?  @db.Text // TEXT field for storing keypoint locations
-  descriptor       Bytes?
-  imageURL         String
-  productId        String
-  product          Product  @relation(fields: [productId], references: [productId]) // Relation to ProductVariant
-  colorId          String
-  color            Color    @relation(fields: [colorId], references: [colorId])
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
-  colorColorId     String?
+  imageId       String    @id @default(cuid())
+  featureVector Json?
+  imageURL      String
+  productId     String
+  product       Product   @relation(fields: [productId], references: [productId]) // Relation to ProductVariant
+  colorName     String?
+  category      String?
+  createdAt     DateTime? @default(now())
+  updatedAt     DateTime? @updatedAt
 
   @@map("images")
 }
 
-model Voucher {
-  voucherId          String   @id @default(cuid())
-  code               String   @unique // Mã voucher duy nhất
-  discountAmount     Float? // Số tiền giảm
-  discountPercentage Int? // Tỷ lệ giảm giá
-  expiryDate         DateTime // Ngày hết hạn voucher
-  isActive           Boolean  @default(true) // Voucher đang hoạt động hay không
-  description        String?
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
-  createdBy          String
-  updatedBy          String
+enum ReviewStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
 
-  @@map("vouchers")
+model Review {
+  reviewId  String       @id @default(cuid())
+  userId    String
+  user      User         @relation(fields: [userId], references: [userId])
+  productId String
+  product   Product      @relation(fields: [productId], references: [productId])
+  rating    Int   
+  comment   String?
+  images    String[]     @default([])
+  status    ReviewStatus @default(PENDING)
+  createdAt DateTime?    @default(now())
+  updatedAt DateTime?    @updatedAt
+
+  @@map("reviews")
 }

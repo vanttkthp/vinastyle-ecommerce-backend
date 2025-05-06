@@ -1,7 +1,6 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateAddressDto, UpdateAddressDto } from './dto';
-
 
 @Injectable()
 export class AddressService {
@@ -37,6 +36,7 @@ export class AddressService {
     const addresses = await this.prisma.address.findMany({
       where: {
         userId: userId,
+        isActive: true,
       },
       select: {
         addressId: true,
@@ -71,12 +71,14 @@ export class AddressService {
       where: {
         addressId: addressId,
         userId: userId,
+        isActive: true,
       },
     });
+
     if (!address) {
-      throw new Error('Address not found');
+      throw new BadRequestException('Address not found');
     }
-    
+
     await this.prisma.address.update({
       where: {
         addressId: addressId,
@@ -92,17 +94,19 @@ export class AddressService {
         postalCode: data.postalCode,
       },
     });
-
     return {
       message: 'Update address successfully',
     };
   }
 
   async deleteAddress(userId: string, addressId: string) {
-    const address = await this.prisma.address.findUnique({
+    const address = await this.prisma.address.update({
       where: {
         addressId: addressId,
         userId: userId,
+      },
+      data: {
+        isActive: false,
       },
     });
     if (!address) {

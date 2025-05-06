@@ -84,7 +84,8 @@ export class OrderService {
       const { colorId, productId } = item.productVariant;
       item.productVariant.product.images =
         item.productVariant.product.images.filter(
-          (image) => image.colorId === colorId && image.productId === productId,
+          (image) =>
+            image.colorName === colorId && image.productId === productId,
         );
     });
 
@@ -195,6 +196,12 @@ export class OrderService {
       select: {
         orderId: true,
         userId: true,
+        user: {
+          select: {
+            firstName: true,
+            lastName: true,
+          },
+        },
         totalAmount: true,
         totalPrice: true,
         orderDate: true,
@@ -298,45 +305,102 @@ export class OrderService {
     const order = await this.prismaService.order.findFirst({
       where: {
         userId: id,
-        status: 'IN_CART',
+        status: OrderStatus.PENDING,
       },
     });
+
     if (order.totalPrice === 0)
       throw new BadRequestException('Should buy something!');
-    const address = await this.prismaService.address.create({
-      data: {
-        addressDetail: dto.addressDetail,
-        city: dto.city,
-        district: dto.district,
-        ward: dto.ward,
-        userId: id,
-      },
-    });
+    const existingAddress = await this.prismaService.$queryRaw`
+      SELECT *
+      FROM "addresses"
+        WHERE 
+          "userId" = ${id} AND
+            LOWER(TRIM("city")) = ${dto.city.toLowerCase().trim()} AND
+            LOWER(TRIM("district")) = ${dto.district.toLowerCase().trim()} AND
+            LOWER(TRIM("ward")) = ${dto.ward.toLowerCase().trim()} AND
+            LOWER(TRIM("addressDetail")) = ${dto.addressDetail.toLowerCase().trim()}
+            LIMIT 1;
+    `;
+    let address;
+    if (!existingAddress[0]) {
+      address = await this.prismaService.address.create({
+        data: {
+          addressDetail: dto.addressDetail,
+          city: dto.city,
+          district: dto.district,
+          ward: dto.ward,
+          userId: id,
+        },
+      });
+    } else {
+      address = existingAddress[0];
+    }
+    console.log(existingAddress);
     if (address) {
-      const shipment = await this.prismaService.shipment.create({
-        data: {
-          address: {
-            connect: { addressId: address.addressId },
+      const existingShipment = await this.prismaService.shipment.findFirst({
+        where: {
+          orders: { some: { orderId: order.orderId } }, // Check if a payment exists for the order
+        },
+      });
+      let shipment;
+      if (existingShipment) {
+        shipment = await this.prismaService.shipment.update({
+          where: { shipmentId: existingShipment.shipmentId },
+          data: {
+            address: {
+              connect: { addressId: address.addressId },
+            },
+            shipmentMethod: dto.shipmentMethod,
+            estimatedCost: this.calculateCost(dto.shipmentMethod, dto.city),
+            estimatedDeliveryDate: this.calculateEstimatedDeliveryDate(
+              dto.shipmentMethod,
+              dto.city,
+            ),
           },
-          shipmentMethod: dto.shipmentMethod,
-          estimatedCost: this.calculateCost(dto.shipmentMethod, dto.city),
-          estimatedDeliveryDate: this.calculateEstimatedDeliveryDate(
-            dto.shipmentMethod,
-            dto.city,
-          ),
+        });
+      } else {
+        shipment = await this.prismaService.shipment.create({
+          data: {
+            address: {
+              connect: { addressId: address.addressId },
+            },
+            shipmentMethod: dto.shipmentMethod,
+            estimatedCost: this.calculateCost(dto.shipmentMethod, dto.city),
+            estimatedDeliveryDate: this.calculateEstimatedDeliveryDate(
+              dto.shipmentMethod,
+              dto.city,
+            ),
+          },
+        });
+      }
+
+      const existingPayment = await this.prismaService.payment.findFirst({
+        where: {
+          orders: { some: { orderId: order.orderId } }, // Check if a payment exists for the order
         },
       });
-      const payment = await this.prismaService.payment.create({
-        data: {
-          amount: order.totalPrice + shipment.estimatedCost,
-          paymentMethod: dto.paymentMethod,
-          status:
-            dto.paymentMethod === PaymentMethod.MOMO ||
-            dto.paymentMethod === PaymentMethod.ZALO
-              ? PaymentStatus.PAID
-              : PaymentStatus.PENDING,
-        },
-      });
+
+      let payment;
+      if (existingPayment) {
+        payment = await this.prismaService.payment.update({
+          where: { paymentId: existingPayment.paymentId },
+          data: {
+            amount: order.totalPrice + shipment.estimatedCost,
+            paymentMethod: dto.paymentMethod,
+            status: PaymentStatus.PENDING,
+          },
+        });
+      } else {
+        payment = await this.prismaService.payment.create({
+          data: {
+            amount: order.totalPrice + shipment.estimatedCost,
+            paymentMethod: dto.paymentMethod,
+            status: PaymentStatus.PENDING,
+          },
+        });
+      }
+
       if (shipment && payment) {
         const updatedOrder = await this.prismaService.order.update({
           where: {
@@ -349,7 +413,10 @@ export class OrderService {
             payment: {
               connect: { paymentId: payment.paymentId },
             },
-            status: OrderStatus.PENDING,
+            status:
+              dto.paymentMethod === PaymentMethod.MOMO
+                ? OrderStatus.IN_CART
+                : OrderStatus.PENDING,
             totalAmount: order.totalPrice + shipment.estimatedCost,
           },
         });

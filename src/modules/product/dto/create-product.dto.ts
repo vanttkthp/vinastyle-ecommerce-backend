@@ -8,6 +8,17 @@ import {
   IsString,
 } from 'class-validator';
 
+type Variant = {
+  colorId: string;
+  sizeId: string;
+  stock: number;
+};
+
+type Image = {
+  url: string;
+  colorName: string;
+};
+
 export class CreateProductDto {
   @IsNotEmpty()
   @IsString()
@@ -27,12 +38,10 @@ export class CreateProductDto {
   @IsNotEmpty()
   @IsString()
   @IsOptional()
-  brandId: string = "mlb";
+  brandId: string = 'mlb';
 
   //product-variant
-  @IsNotEmpty()
-  @IsString()
-  colorId: string;
+
   // @IsNotEmpty()
   // @IsString()
   // sizeId: string;
@@ -43,5 +52,9 @@ export class CreateProductDto {
   //images
   @IsNotEmpty()
   @IsArray()
-  imageURLs: string[];
+  images: Image[];
+
+  @IsArray()
+  @IsNotEmpty()
+  variants: Variant[];
 }
