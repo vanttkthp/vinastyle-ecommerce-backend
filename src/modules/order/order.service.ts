@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateOrderDto } from './dto/update-order.dto';
 import { PrismaService } from '../prisma/prisma.service';
@@ -45,6 +49,15 @@ export class OrderService {
   }
 
   async findCartByUserId(id: string) {
+    const checkCart = await this.prismaService.order.findFirst({
+      where: {
+        userId: id,
+        status: 'IN_CART',
+      },
+    });
+
+    if (!checkCart) this.create(id);
+
     const cart = await this.prismaService.order.findFirst({
       where: {
         userId: id,
@@ -80,6 +93,16 @@ export class OrderService {
       },
     });
 
+    const checkPayment = await this.prismaService.payment.findFirst({
+      where: {
+        orders: { some: { orderId: cart.orderId } }, // Check if a payment exists for the order
+      },
+      select: {
+        paymentMethod: true,
+        status: true,
+      },
+    });
+
     cart.orderItems.forEach((item) => {
       const { colorId, productId } = item.productVariant;
       item.productVariant.product.images =
@@ -106,6 +129,7 @@ export class OrderService {
       orderId: cart.orderId,
       totalPrice: cart.totalPrice,
       orderItems: orderItems,
+      checkPayment: checkPayment === null ? 0 : 1,
     };
   }
 
@@ -193,6 +217,9 @@ export class OrderService {
       where: whereCondition,
       take: limit,
       skip: skip,
+      orderBy: {
+        createdAt: 'desc', // hoặc 'asc' nếu muốn tăng dần
+      },
       select: {
         orderId: true,
         userId: true,
@@ -305,12 +332,20 @@ export class OrderService {
     const order = await this.prismaService.order.findFirst({
       where: {
         userId: id,
-        status: OrderStatus.PENDING,
+        status: OrderStatus.IN_CART,
       },
     });
 
-    if (order.totalPrice === 0)
+    if (!order) {
+      throw new NotFoundException(
+        `Order with userId ${id} and status PENDING not found`,
+      );
+    }
+
+    if (order.totalPrice === 0) {
       throw new BadRequestException('Should buy something!');
+    }
+
     const existingAddress = await this.prismaService.$queryRaw`
       SELECT *
       FROM "addresses"
@@ -420,7 +455,7 @@ export class OrderService {
             totalAmount: order.totalPrice + shipment.estimatedCost,
           },
         });
-        if (updatedOrder) {
+        if (updatedOrder && dto.paymentMethod !== PaymentMethod.MOMO) {
           await this.create(id);
         }
         return {

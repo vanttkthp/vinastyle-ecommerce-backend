@@ -5,9 +5,5 @@ export class CreateMomoPaymentDto {
   @IsNumber()
   amount: number;
 
-  @IsNotEmpty()
-  @IsString()
-  orderId: string;
-  
   orderInfo: string;
 }

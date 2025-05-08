@@ -175,6 +175,7 @@ export class ProductService {
         brandId: true,
         productVariants: {
           select: {
+            productVariantId: true,
             color: {
               select: {
                 name: true,
@@ -400,74 +401,44 @@ export class ProductService {
     });
   }
 
-  async generateProductQuantityPdf(
-    id: string,
-    reason?: string,
-    staff?: string,
+  async generateExportProductQuantityPdf(
+    data: { productVariantId: string; quantity: number }[],
   ): Promise<Buffer> {
     // Fetch product data using the same logic as findOne
-    const product = await this.prismaService.product.findUnique({
-      where: { productId: id },
+    const productVariantIds = data.map((item) => item.productVariantId);
+    const variantQuantities = data.map((item) => item.quantity);
+    const productVariants = await this.prismaService.productVariant.findMany({
+      where: {
+        productVariantId: { in: productVariantIds },
+      },
       select: {
+        productVariantId: true,
         productId: true,
-        name: true,
-        description: true,
-        price: true,
-        category: {
+        SKU: true,
+        soldQuantity: true,
+        stock: true,
+        color: {
           select: {
-            categoryId: true,
+            hexCode: true,
             name: true,
           },
         },
-        subCategory: {
-          select: {
-            subCategoryId: true,
-            name: true,
-          },
-        },
-        brand: {
+        product: {
           select: {
             name: true,
           },
         },
-        productVariants: {
+        size: {
           select: {
-            productVariantId: true,
-            SKU: true,
-            soldQuantity: true,
-            stock: true,
-            color: {
-              select: {
-                hexCode: true,
-                name: true,
-              },
-            },
-            size: {
-              select: {
-                sizeType: true,
-              },
-            },
-          },
-        },
-        images: {
-          select: {
-            imageURL: true,
+            sizeType: true,
           },
         },
       },
     });
 
-    if (!product) {
-      throw new Error('Product not found');
+    if (!productVariants || productVariants.length === 0) {
+      throw new Error('Not found');
     }
-    // Calculate totals
-    let totalInStock = 0;
-    let totalSold = 0;
-    product.productVariants.forEach((variant) => {
-      totalInStock += variant.stock;
-      totalSold += variant.soldQuantity;
-    });
-
     // Tạo tài liệu PDF
     const doc = new pdfkit({
       size: 'A4',
@@ -482,21 +453,6 @@ export class ProductService {
     doc.fontSize(20).text('PHIEU XUAT KHO', { align: 'center' });
     doc.moveDown(2);
 
-    // Thông tin sản phẩm chính
-    doc.fontSize(12);
-    doc.text(`San pham: ${product.name}`);
-    doc.text(
-      `Danh muc: ${product.subCategory?.name || 'Không có'} - ${product.category.name}`,
-    );
-    doc.text(`Gia: ${product.price.toLocaleString()} VND`);
-    if (reason) {
-      doc.text(`Ly do xuat kho: ${reason}`);
-    }
-    if (staff) {
-      doc.text(`Nhan vien xuat kho: ${staff}`);
-    }
-    doc.moveDown(1);
-
     // Bảng thông tin các loại sản phẩm
     doc.fontSize(12).text('Chi tiet cac san pham:', { underline: true });
     doc.moveDown(0.5);
@@ -508,34 +464,25 @@ export class ProductService {
     doc
       .font('Helvetica-Bold')
       .text('STT', 50, tableTop)
-      .text('SKU', 90, tableTop)
-      .text('Mau sac', 170, tableTop)
-      .text('Ma mau', 270, tableTop)
+      .text('Ten san pham', 90, tableTop)
+      .text('Mau sac', 270, tableTop)
       .text('Size', 340, tableTop)
       // .text('Ton kho', 410, tableTop)
       .text('Da xuat', 410, tableTop)
       .moveDown();
 
     doc.font('Helvetica');
-    product.productVariants.forEach((variant, index) => {
+    productVariants.forEach((variant, index) => {
       const y = tableTop + itemSpacing * (index + 1);
       doc
         .text(index + 1, 50, y)
-        .text(variant.SKU, 90, y)
-        .text(variant.color.name, 170, y)
-        .text(variant.color.hexCode, 270, y)
+        .text(variant.product.name, 90, y)
+        .text(variant.color.name, 270, y)
         .text(variant.size.sizeType, 340, y)
-        // .text(variant.stock.toString(), 410, y)
-        .text(variant.soldQuantity.toString(), 410, y); //470
+        .text(variantQuantities[index], 410, y);
     });
 
     doc.moveDown(2);
-
-    // Tổng kết
-    doc.font('Helvetica-Bold').text('Tong ket:', { underline: true });
-    doc.font('Helvetica');
-    doc.text(`Tong ton kho: ${totalInStock}`);
-    doc.text(`Tong da ban: ${totalSold}`);
 
     // Thời gian tạo
     doc.moveDown(2);
@@ -555,73 +502,43 @@ export class ProductService {
     });
   }
   async generateImportProductQuantityPdf(
-    id: string,
-    reason?: string,
-    staff?: string,
+    data: { productVariantId: string; quantity: number }[],
   ): Promise<Buffer> {
     // Fetch product data using the same logic as findOne
-    const product = await this.prismaService.product.findUnique({
-      where: { productId: id },
+    const productVariantIds = data.map((item) => item.productVariantId);
+    const variantQuantities = data.map((item) => item.quantity);
+    const productVariants = await this.prismaService.productVariant.findMany({
+      where: {
+        productVariantId: { in: productVariantIds },
+      },
       select: {
+        productVariantId: true,
         productId: true,
-        name: true,
-        description: true,
-        price: true,
-        category: {
+        SKU: true,
+        soldQuantity: true,
+        stock: true,
+        color: {
           select: {
-            categoryId: true,
+            hexCode: true,
             name: true,
           },
         },
-        subCategory: {
-          select: {
-            subCategoryId: true,
-            name: true,
-          },
-        },
-        brand: {
+        product: {
           select: {
             name: true,
           },
         },
-        productVariants: {
+        size: {
           select: {
-            productVariantId: true,
-            SKU: true,
-            soldQuantity: true,
-            stock: true,
-            color: {
-              select: {
-                hexCode: true,
-                name: true,
-              },
-            },
-            size: {
-              select: {
-                sizeType: true,
-              },
-            },
-          },
-        },
-        images: {
-          select: {
-            imageURL: true,
+            sizeType: true,
           },
         },
       },
     });
 
-    if (!product) {
-      throw new Error('Product not found');
+    if (!productVariants || productVariants.length === 0) {
+      throw new Error('Not found');
     }
-    // Calculate totals
-    let totalInStock = 0;
-    let totalSold = 0;
-    product.productVariants.forEach((variant) => {
-      totalInStock += variant.stock;
-      totalSold += variant.soldQuantity;
-    });
-
     // Tạo tài liệu PDF
     const doc = new pdfkit({
       size: 'A4',
@@ -633,23 +550,8 @@ export class ProductService {
     doc.on('end', () => {});
 
     // Header
-    doc.fontSize(20).text('PHIEU XUAT KHO', { align: 'center' });
+    doc.fontSize(20).text('PHIEU NHAP KHO', { align: 'center' });
     doc.moveDown(2);
-
-    // Thông tin sản phẩm chính
-    doc.fontSize(12);
-    doc.text(`San pham: ${product.name}`);
-    doc.text(
-      `Danh muc: ${product.subCategory?.name || 'Không có'} - ${product.category.name}`,
-    );
-    doc.text(`Gia: ${product.price.toLocaleString()} VND`);
-    if (reason) {
-      doc.text(`Ly do nhap kho: ${reason}`);
-    }
-    if (staff) {
-      doc.text(`Nhan vien nhap kho: ${staff}`);
-    }
-    doc.moveDown(1);
 
     // Bảng thông tin các loại sản phẩm
     doc.fontSize(12).text('Chi tiet cac san pham:', { underline: true });
@@ -662,35 +564,25 @@ export class ProductService {
     doc
       .font('Helvetica-Bold')
       .text('STT', 50, tableTop)
-      .text('SKU', 90, tableTop)
-      .text('Mau sac', 170, tableTop)
-      .text('Ma mau', 270, tableTop)
+      .text('Ten san pham', 90, tableTop)
+      .text('Mau sac', 270, tableTop)
       .text('Size', 340, tableTop)
       // .text('Ton kho', 410, tableTop)
       .text('Da nhap', 410, tableTop)
       .moveDown();
 
     doc.font('Helvetica');
-    product.productVariants.forEach((variant, index) => {
+    productVariants.forEach((variant, index) => {
       const y = tableTop + itemSpacing * (index + 1);
-      const totalImportQuantity = variant.stock + variant.soldQuantity;
       doc
         .text(index + 1, 50, y)
-        .text(variant.SKU, 90, y)
-        .text(variant.color.name, 170, y)
-        .text(variant.color.hexCode, 270, y)
+        .text(variant.product.name, 90, y)
+        .text(variant.color.name, 270, y)
         .text(variant.size.sizeType, 340, y)
-        // .text(variant.stock.toString(), 410, y)
-        .text(totalImportQuantity.toString(), 410, y); //470
+        .text(variantQuantities[index], 410, y);
     });
 
     doc.moveDown(2);
-
-    // Tổng kết
-    doc.font('Helvetica-Bold').text('Tong ket:', { underline: true });
-    doc.font('Helvetica');
-    doc.text(`Tong ton kho: ${totalInStock}`);
-    doc.text(`Tong da ban: ${totalSold}`);
 
     // Thời gian tạo
     doc.moveDown(2);

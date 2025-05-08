@@ -17,8 +17,8 @@ export class PaymentService {
     return 'This action adds a new payment';
   }
 
-  async createPaymentWithMomo(dto: CreateMomoPaymentDto) {
-    return await this.momoService.createPayment(dto);
+  async createPaymentWithMomo(dto: CreateMomoPaymentDto, userId: string) {
+    return await this.momoService.createPayment(dto, userId);
   }
 
   async checkMomoTransactionStatus(orderId: string) {

@@ -3,6 +3,8 @@ import * as crypto from 'crypto';
 import axios from 'axios';
 import { ConfigService } from '@nestjs/config';
 import { CreateMomoPaymentDto } from './dto/create-momo-payment.dto';
+import { OrderService } from '../order/order.service';
+import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
 export class MomoService {
@@ -15,7 +17,10 @@ export class MomoService {
   private autoCapture: boolean = true;
   private lang: string = 'en';
 
-  constructor(private configService: ConfigService) {
+  constructor(
+    private configService: ConfigService,
+    private prismaService: PrismaService,
+  ) {
     this.accessKey = this.configService.get<string>('MOMO_ACCESS_KEY');
     this.secretKey = this.configService.get<string>('MOMO_SECRET_KEY');
     this.partnerCode = this.configService.get<string>('MOMO_PARTNER_CODE');
@@ -23,8 +28,18 @@ export class MomoService {
     this.ipnUrl = this.configService.get<string>('MOMO_IPN_URL');
   }
 
-  async createPayment(dto: CreateMomoPaymentDto) {
-    const orderId = dto.orderId;
+  private async getOrderId(userId: string) {
+    const order = await this.prismaService.order.findFirst({
+      where: { status: 'IN_CART', userId: userId },
+    });
+    if (!order) {
+      throw new Error('No pending order found');
+    }
+    return order.orderId;
+  }
+
+  async createPayment(dto: CreateMomoPaymentDto, userId: string) {
+    const orderId = await this.getOrderId(userId);
     const extraData = '';
     const requestId = orderId;
     const rawSignature = `accessKey=${this.accessKey}&amount=${dto.amount}&extraData=${extraData}&ipnUrl=${this.ipnUrl}&orderId=${orderId}&orderInfo=pay with MoMo&partnerCode=${this.partnerCode}&redirectUrl=${this.redirectUrl}&requestId=${requestId}&requestType=${this.requestType}`;

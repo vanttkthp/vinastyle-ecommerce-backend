@@ -57,21 +57,22 @@ export class ProductController {
   // findProductsByCategoryId(@Query() dto: PageOptionDto) {
   //   return this.productService.findAll(dto);
   // }
-  @Get('/:id/export')
-  async exportPdf(
-    @Param('id') id: string,
+  @Post('export')
+  async exportExportPdf(
     @Res() res: Response,
-    @Body() dto?: { reason: string; staff: string },
+    @Body()
+    data: {
+      result: { productVariantId: string; quantity: number }[];
+    },
   ) {
     try {
-      const pdfBuffer = await this.productService.generateProductQuantityPdf(
-        id,
-        dto.reason,
-        dto.staff,
-      );
+      console.log(data.result);
+
+      const pdfBuffer =
+        await this.productService.generateExportProductQuantityPdf(data.result);
       res.set({
         'Content-Type': 'application/pdf',
-        'Content-Disposition': `attachment; filename="product-${id}-quantity.pdf"`,
+        'Content-Disposition': `attachment; filename="product-quantity.pdf"`,
         'Content-Length': pdfBuffer.length,
       });
       res.end(pdfBuffer);
@@ -82,22 +83,22 @@ export class ProductController {
     }
   }
 
-  @Get('/:id/import')
+  @Post('import')
   async exportImportPdf(
-    @Param('id') id: string,
     @Res() res: Response,
-    @Body() dto?: { reason: string; staff: string },
+    @Body()
+    data: {
+      result: { productVariantId: string; quantity: number }[];
+    },
   ) {
     try {
+      console.log(data.result);
+
       const pdfBuffer =
-        await this.productService.generateImportProductQuantityPdf(
-          id,
-          dto.reason,
-          dto.staff,
-        );
+        await this.productService.generateImportProductQuantityPdf(data.result);
       res.set({
         'Content-Type': 'application/pdf',
-        'Content-Disposition': `attachment; filename="product-${id}-quantity.pdf"`,
+        'Content-Disposition': `attachment; filename="product-quantity.pdf"`,
         'Content-Length': pdfBuffer.length,
       });
       res.end(pdfBuffer);

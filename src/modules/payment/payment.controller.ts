@@ -18,6 +18,7 @@ import { CreateMomoPaymentDto } from '../momo/dto/create-momo-payment.dto';
 import { OrderService } from '../order/order.service';
 import { OrderStatus, PaymentStatus } from '@prisma/client';
 import { JwtAccessTokenGuard } from '../auth/guards';
+import { RequestWithUser } from 'src/types/request.type';
 
 @Controller('api/v1/payments')
 export class PaymentController {
@@ -33,9 +34,13 @@ export class PaymentController {
 
   @UseGuards(JwtAccessTokenGuard)
   @Post('momo')
-  async createMomoPayment(@Body() createMomoPaymentDto: CreateMomoPaymentDto) {
+  async createMomoPayment(
+    @Body() createMomoPaymentDto: CreateMomoPaymentDto,
+    @Req() req: RequestWithUser,
+  ) {
     return await this.paymentService.createPaymentWithMomo(
       createMomoPaymentDto,
+      req.user.userId,
     );
   }
 
